@@ -19,7 +19,7 @@ int main()
     }
     else
     {
-        printf("Socket created successfuly!\n");
+        printf("Socket created successfully!\n");
     }
 
     socketAddress.sin_family = AF_INET;
