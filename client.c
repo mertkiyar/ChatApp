@@ -21,20 +21,25 @@ int main()
     }
     else
     {
-        printf("Socket created successfully");
+        printf("Socket created successfully!\n");
     }
 
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(PORT);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    // CONNECT
+
     serverAddressSize = sizeof(serverAddress);
-    clientConnect = connect(clientConnect, (struct sockaddr *)&serverAddress, (socklen_t *)&serverAddressSize);
+    clientConnect = connect(clientSocket, (struct sockaddr *)&serverAddress, serverAddressSize);
     if (clientConnect == -1)
     {
-        printf("The client not connected to the server!");
+        printf("The client not connected to the server! Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("Connected to the server successfully!");
+        printf("Connected to the server successfully!\n");
     }
+
+    // READ / WRITE
 }

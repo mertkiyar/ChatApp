@@ -47,7 +47,7 @@ int main()
     }
     else
     {
-        printf("Porttt %d listening!\n", ntohs(socketAddress.sin_port));
+        printf("Port %d listening!\n", ntohs(socketAddress.sin_port));
         printf("Client 1 waiting...\n");
     }
 
@@ -55,25 +55,28 @@ int main()
 
     clientAddressSize = sizeof(clientAddress);
     client1Accept = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
-    if (client1Accept != 0)
+    if (client1Accept < 0) // accept() 4, 5 gibi pozitif sayı döner.
     {
         printf("Error: Client 1's request rejected.\n");
     }
     else
     {
-        printf("Client 1's request accepted.\n");
-        printf("Client 2 waiting...\n");
+        printf("Client 1's request accepted. Socket ID: %d\n", client1Accept);
     }
+
+    printf("Client 2 waiting...\n");
 
     // CLIENT 2
 
     client2Accept = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
-    if (client2Accept != 0)
+    if (client2Accept < 0)
     {
         printf("Client 2's request rejected.\n");
     }
     else
     {
-        printf("Client 2's request accepted.\n");
+        printf("Client 2's request accepted. Socket ID: %d\n", client2Accept);
     }
+
+    printf("Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
 }
