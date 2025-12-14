@@ -42,4 +42,23 @@ int main()
     }
 
     // READ / WRITE
+
+    while (1)
+    {
+        printf("You: ");
+        fgets(buffer, 1024, stdin);
+        buffer[strcspn(buffer, "\n")] = 0;
+
+        send(clientSocket, buffer, strlen(buffer), 0);
+
+        memset(buffer, 0, 1024);
+        int receivedText = recv(clientSocket, buffer, 1024, 0);
+        if (receivedText <= 0)
+        {
+            printf("The connection was lost!");
+            break;
+        }
+
+        printf("From Other Client: %s\n", buffer);
+    }
 }

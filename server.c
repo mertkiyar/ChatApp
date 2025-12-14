@@ -9,10 +9,13 @@
 
 int main()
 {
-    int serverSocket, serverBind, serverListen, clientAddressSize, client1Accept, client2Accept;
+    int serverSocket, serverBind, serverListen, clientAddressSize, client1, client2;
     struct sockaddr_in socketAddress, clientAddress;
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    char buffer[1024];
 
+    // SOCKET
+
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1)
     {
         printf("Error: %s\n", strerror(errno));
@@ -54,29 +57,61 @@ int main()
     // CLIENT 1
 
     clientAddressSize = sizeof(clientAddress);
-    client1Accept = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
-    if (client1Accept < 0) // accept() 4, 5 gibi pozitif sayı döner.
+    client1 = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
+    if (client1 < 0) // accept() 4, 5 gibi pozitif sayı döner.
     {
         printf("Error: Client 1's request rejected.\n");
     }
     else
     {
-        printf("Client 1's request accepted. Socket ID: %d\n", client1Accept);
+        printf("Client 1's request accepted. Socket ID: %d\n", client1);
     }
 
     printf("Client 2 waiting...\n");
 
     // CLIENT 2
 
-    client2Accept = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
-    if (client2Accept < 0)
+    client2 = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
+    if (client2 < 0)
     {
         printf("Client 2's request rejected.\n");
     }
     else
     {
-        printf("Client 2's request accepted. Socket ID: %d\n", client2Accept);
+        printf("Client 2's request accepted. Socket ID: %d\n", client2);
     }
 
     printf("Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
+
+    // COMMUNICATION LOOP
+
+    while (1)
+    {
+
+        // CLIENT 1
+
+        memset(buffer, 0, 1024);
+        int receivedText = recv(client1, buffer, 1024, 0);
+        if (receivedText <= 0)
+        {
+            printf("The connection was lost!");
+            break;
+        }
+
+        printf("Client 1: %s\n", buffer);
+        send(client2, buffer, strlen(buffer), 0);
+
+        // CLIENT 2
+
+        memset(buffer, 0, 1024);
+        receivedText = recv(client2, buffer, 1024, 0);
+        if (receivedText <= 0)
+        {
+            printf("The connection was lost!");
+            break;
+        }
+
+        printf("Client 2: %s\n", buffer);
+        send(client1, buffer, strlen(buffer), 0);
+    }
 }
