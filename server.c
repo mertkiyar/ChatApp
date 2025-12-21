@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define PORT 6378
 
@@ -25,6 +26,16 @@ void *handleClient1(void *arg)
     {
         buffer[readSize] = '\0'; // önceki mesajların üzerine yazılmasını düzeltmek için
 
+        if (strcmp(buffer, "/exit") == 0) // client 1 ayrılırsa client 2'ye söyler
+        {
+            if (client2 != 0)
+            {
+                char *msg = "\n" RED "[-]" RESET " Client 1 left the chat.\n";
+                send(client2, msg, strlen(msg), 0);
+            }
+            break;
+        }
+
         if (client2 != 0)
         {
             printf("Client1 to Client2 : %s\n", buffer); // sunucuda görünmesi için
@@ -32,6 +43,7 @@ void *handleClient1(void *arg)
         }
     }
 
+    close(client1);
     client1 = 0; // bağlantı koptu veya client1 ayrıldı
     printf(RED "[-]" RESET " Client 1 left, chat closed.\n");
     return NULL; // thread'ı sonlandırmak için
@@ -46,6 +58,16 @@ void *handleClient2(void *arg)
     {
         buffer[readSize] = '\0';
 
+        if (strcmp(buffer, "/exit") == 0) // client 2 ayrılırsa client 1'e söyle
+        {
+            if (client1 != 0)
+            {
+                char *msg = "\n" RED "[-]" RESET " Client 2 left the chat.\n";
+                send(client1, msg, strlen(msg), 0);
+            }
+            break;
+        }
+
         if (client1 != 0)
         {
             printf("Client2 to Client1 : %s\n", buffer);
@@ -53,14 +75,15 @@ void *handleClient2(void *arg)
         }
     }
 
-    printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
+    close(client2);
     client2 = 0;
+    printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
     return NULL;
 }
 
 int main()
 {
-    int serverSocket, serverBind, serverListen, clientAddressSize, receivedText;
+    int serverSocket, serverBind, serverListen, clientAddressSize;
     struct sockaddr_in socketAddress, clientAddress;
     char buffer[1024];
     pthread_t thread1, thread2;

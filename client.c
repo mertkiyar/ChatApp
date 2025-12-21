@@ -84,6 +84,8 @@ int main()
 
         if (strcmp(buffer, "/exit") == 0) // sohbetten çıkmak için
         {
+            send(clientSocket, buffer, strlen(buffer), 0);
+            printf("You left the chat.");
             close(clientSocket);
             break;
         }
