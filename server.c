@@ -8,6 +8,11 @@
 
 #define PORT 6378
 
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define RESET "\033[0m"
+
 int client1 = 0;
 int client2 = 0;
 
@@ -28,7 +33,7 @@ void *handleClient1(void *arg)
     }
 
     client1 = 0; // bağlantı koptu veya client1 ayrıldı
-    printf("[-] Client 1 left, chat closed.\n");
+    printf(RED "[-]" RESET " Client 1 left, chat closed.\n");
     return NULL; // thread'ı sonlandırmak için
 }
 
@@ -48,7 +53,7 @@ void *handleClient2(void *arg)
         }
     }
 
-    printf("[-] Client 2 left, chat closed.\n");
+    printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
     client2 = 0;
     return NULL;
 }
@@ -65,11 +70,11 @@ int main()
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1)
     {
-        printf("[-] Error: %s\n", strerror(errno));
+        printf(RED "[-]" RESET " Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("[+] Socket created successfully!\n");
+        printf(GREEN "[+]" RESET " Socket created successfully!\n");
     }
 
     socketAddress.sin_family = AF_INET;
@@ -81,12 +86,12 @@ int main()
     serverBind = bind(serverSocket, (struct sockaddr *)&socketAddress, sizeof(socketAddress));
     if (serverBind != 0)
     {
-        printf("[-] Error: The bind operation is failed.\n");
+        printf(RED "[-]" RESET " Error: The bind operation is failed.\n");
         return 1; // hata gelirse devam etmesin diye 1 döndü
     }
     else
     {
-        printf("[+] The bind operation is success!\n");
+        printf(GREEN "[+]" RESET " The bind operation is success!\n");
     }
 
     // LISTEN
@@ -94,13 +99,13 @@ int main()
     serverListen = listen(serverSocket, 2); // 2 client dinleniyor
     if (serverListen != 0)
     {
-        printf("[-] Error: The listen operation is failed.");
+        printf(RED "[-]" RESET " Error: The listen operation is failed.");
         return 1;
     }
     else
     {
-        printf("[+] Port %d listening!\n", ntohs(socketAddress.sin_port));
-        printf("[*] Client 1 waiting...\n");
+        printf(GREEN "[+]" RESET " Port" YELLOW " %d " RESET "is listening!\n", ntohs(socketAddress.sin_port));
+        printf(YELLOW "[*]" RESET " Client 1 waiting...\n");
     }
 
     // CLIENT 1
@@ -109,29 +114,29 @@ int main()
     client1 = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
     if (client1 < 0) // accept() 4, 5 gibi pozitif sayı döner.
     {
-        printf("[-] Error: Client 1's request rejected.\n");
+        printf(RED "[-]" RESET " Error: Client 1's request rejected.\n");
     }
     else
     {
-        printf("[+] Client 1's request accepted. Socket ID: %d\n", client1);
+        printf(GREEN "[+]" RESET " Client 1's request accepted. Socket ID: %d\n", client1);
     }
     pthread_create(&thread1, NULL, handleClient1, NULL);
-    printf("[*] Client 2 waiting...\n");
+    printf(YELLOW "[*]" RESET " Client 2 waiting...\n");
 
     // CLIENT 2
 
     client2 = accept(serverSocket, (struct sockaddr *)&clientAddress, (socklen_t *)&clientAddressSize);
     if (client2 < 0)
     {
-        printf("[-] Client 2's request rejected.\n");
+        printf(RED "[-]" RESET " Client 2's request rejected.\n");
     }
     else
     {
-        printf("[+] Client 2's request accepted. Socket ID: %d\n", client2);
+        printf(GREEN "[+]" RESET " Client 2's request accepted. Socket ID: %d\n", client2);
     }
 
     pthread_create(&thread2, NULL, handleClient2, NULL);
-    printf("[+] Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
+    printf(GREEN "[+]" RESET " Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);

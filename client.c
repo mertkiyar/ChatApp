@@ -9,6 +9,11 @@
 
 #define PORT 6378
 
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define RESET "\033[0m"
+
 void *receiveMessage(void *socket_desc)
 {
     int socket = *(int *)socket_desc;
@@ -35,11 +40,11 @@ int main()
 
     if (clientSocket == -1)
     {
-        printf("[-] Error: %s\n", strerror(errno));
+        printf(RED "[-]" RESET " Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("[+] Socket created successfully!\n");
+        printf(GREEN "[+]" RESET " Socket created successfully!\n");
     }
 
     serverAddress.sin_family = AF_INET;
@@ -52,11 +57,11 @@ int main()
     clientConnect = connect(clientSocket, (struct sockaddr *)&serverAddress, serverAddressSize);
     if (clientConnect == -1)
     {
-        printf("[-] The client not connected to the server! Error: %s\n", strerror(errno));
+        printf(RED "[-]" RESET " The client not connected to the server! Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("[+] Connected to the server successfully!\n");
+        printf(GREEN "[+]" RESET " Connected to the server successfully!\n");
     }
 
     // THREAD
@@ -64,11 +69,11 @@ int main()
     int createdThread = pthread_create(&recvThread, NULL, receiveMessage, (void *)&clientSocket);
     if (createdThread < 0)
     {
-        printf("[-] Error: The thread is not created.\n");
+        printf(RED "[-]" RESET " Error: The thread is not created.\n");
     }
     else
     {
-        printf("[+] The thread created successfully!\n");
+        printf(GREEN "[+]" RESET " The thread created successfully!\n");
     }
 
     while (1)
