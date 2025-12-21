@@ -4,14 +4,31 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define PORT 6378
+
+void *receiveMessage(void *socket_desc)
+{
+    int socket = *(int *)socket_desc;
+    char buffer[1024];
+    int readSize; // mesajdaki harf sayısı
+
+    while ((readSize = recv(socket, buffer, 1024, 0)) > 0) // 0'dan fazla harf varken
+    {
+        buffer[readSize] = '\0';
+        printf("\n -> Other Client: %s\nYou: ", buffer);
+        fflush(stdout);
+    }
+    return NULL;
+}
 
 int main()
 {
     int clientSocket, clientConnect, serverAddressSize;
     struct sockaddr_in serverAddress;
     char buffer[1024];
+    pthread_t recvThread;
 
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -41,24 +58,23 @@ int main()
         printf("Connected to the server successfully!\n");
     }
 
-    // READ / WRITE
+    // THREAD
+
+    int createdThread = pthread_create(&recvThread, NULL, receiveMessage, (void *)&clientSocket);
+    if (createdThread < 0)
+    {
+        printf("Error: The thread is not created.\n");
+    }
+    else
+    {
+        printf("The thread created successfully!\n");
+    }
 
     while (1)
     {
         printf("You: ");
         fgets(buffer, 1024, stdin);
         buffer[strcspn(buffer, "\n")] = 0;
-
         send(clientSocket, buffer, strlen(buffer), 0);
-
-        memset(buffer, 0, 1024);
-        int receivedText = recv(clientSocket, buffer, 1024, 0);
-        if (receivedText <= 0)
-        {
-            printf("The connection was lost!");
-            break;
-        }
-
-        printf("From Other Client: %s\n", buffer);
     }
 }

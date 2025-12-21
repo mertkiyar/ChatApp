@@ -4,14 +4,61 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define PORT 6378
 
+int client1 = 0;
+int client2 = 0;
+
+void *handleClient1(void *arg)
+{
+    char buffer[1024];
+    int readSize;
+
+    while ((readSize = recv(client1, buffer, 1024, 0)) > 0)
+    {
+        buffer[readSize] = '\0'; // önceki mesajların üzerine yazılmasını düzeltmek için
+
+        if (client2 != 0)
+        {
+            printf("Client1 to Client2 : %s\n", buffer); // sunucuda görünmesi için
+            send(client2, buffer, strlen(buffer), 0);
+        }
+    }
+
+    client1 = 0; // bağlantı koptu veya client1 ayrıldı
+    printf("Client 1 left, chat closed.\n");
+    return NULL; // thread'ı sonlandırmak için
+}
+
+void *handleClient2(void *arg)
+{
+    char buffer[1024];
+    int readSize;
+
+    while ((readSize = recv(client2, buffer, 1024, 0)) > 0)
+    {
+        buffer[readSize] = '\0';
+
+        if (client1 != 0)
+        {
+            printf("Client2 to Client1 : %s\n", buffer);
+            send(client1, buffer, strlen(buffer), 0);
+        }
+    }
+
+    printf("Client 2 left, chat closed.\n");
+    client2 = 0;
+    return NULL;
+}
+
 int main()
 {
-    int serverSocket, serverBind, serverListen, clientAddressSize, client1, client2;
+    int serverSocket, serverBind, serverListen, clientAddressSize, receivedText;
     struct sockaddr_in socketAddress, clientAddress;
     char buffer[1024];
+    pthread_t thread1, thread2;
 
     // SOCKET
 
@@ -34,7 +81,8 @@ int main()
     serverBind = bind(serverSocket, (struct sockaddr *)&socketAddress, sizeof(socketAddress));
     if (serverBind != 0)
     {
-        printf("Error: The bind operation is failed.");
+        printf("Error: The bind operation is failed.\n");
+        return 1; // hata gelirse devam etmesin diye 1 döndü
     }
     else
     {
@@ -47,6 +95,7 @@ int main()
     if (serverListen != 0)
     {
         printf("Error: The listen operation is failed.");
+        return 1;
     }
     else
     {
@@ -66,7 +115,7 @@ int main()
     {
         printf("Client 1's request accepted. Socket ID: %d\n", client1);
     }
-
+    pthread_create(&thread1, NULL, handleClient1, NULL);
     printf("Client 2 waiting...\n");
 
     // CLIENT 2
@@ -81,37 +130,9 @@ int main()
         printf("Client 2's request accepted. Socket ID: %d\n", client2);
     }
 
+    pthread_create(&thread2, NULL, handleClient2, NULL);
     printf("Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
 
-    // COMMUNICATION LOOP
-
-    while (1)
-    {
-
-        // CLIENT 1
-
-        memset(buffer, 0, 1024);
-        int receivedText = recv(client1, buffer, 1024, 0);
-        if (receivedText <= 0)
-        {
-            printf("The connection was lost!");
-            break;
-        }
-
-        printf("Client 1: %s\n", buffer);
-        send(client2, buffer, strlen(buffer), 0);
-
-        // CLIENT 2
-
-        memset(buffer, 0, 1024);
-        receivedText = recv(client2, buffer, 1024, 0);
-        if (receivedText <= 0)
-        {
-            printf("The connection was lost!");
-            break;
-        }
-
-        printf("Client 2: %s\n", buffer);
-        send(client1, buffer, strlen(buffer), 0);
-    }
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
 }
