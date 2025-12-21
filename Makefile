@@ -7,5 +7,6 @@ server:
 client1:
 	gcc ./client.c -o client -pthread
 	./client
+	
 client2:
 	./client

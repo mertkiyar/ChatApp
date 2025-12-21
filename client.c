@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define PORT 6378
 
@@ -34,11 +35,11 @@ int main()
 
     if (clientSocket == -1)
     {
-        printf("Error: %s\n", strerror(errno));
+        printf("[-] Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("Socket created successfully!\n");
+        printf("[+] Socket created successfully!\n");
     }
 
     serverAddress.sin_family = AF_INET;
@@ -51,11 +52,11 @@ int main()
     clientConnect = connect(clientSocket, (struct sockaddr *)&serverAddress, serverAddressSize);
     if (clientConnect == -1)
     {
-        printf("The client not connected to the server! Error: %s\n", strerror(errno));
+        printf("[-] The client not connected to the server! Error: %s\n", strerror(errno));
     }
     else
     {
-        printf("Connected to the server successfully!\n");
+        printf("[+] Connected to the server successfully!\n");
     }
 
     // THREAD
@@ -63,11 +64,11 @@ int main()
     int createdThread = pthread_create(&recvThread, NULL, receiveMessage, (void *)&clientSocket);
     if (createdThread < 0)
     {
-        printf("Error: The thread is not created.\n");
+        printf("[-] Error: The thread is not created.\n");
     }
     else
     {
-        printf("The thread created successfully!\n");
+        printf("[+] The thread created successfully!\n");
     }
 
     while (1)
@@ -75,6 +76,16 @@ int main()
         printf("You: ");
         fgets(buffer, 1024, stdin);
         buffer[strcspn(buffer, "\n")] = 0;
-        send(clientSocket, buffer, strlen(buffer), 0);
+
+        if (strcmp(buffer, "/exit") == 0) // sohbetten çıkmak için
+        {
+            close(clientSocket);
+            break;
+        }
+
+        if (strlen(buffer) > 0) // boş mesaj göndermemek için
+        {
+            send(clientSocket, buffer, strlen(buffer), 0);
+        }
     }
 }
