@@ -23,7 +23,7 @@ void *receiveMessage(void *socket_desc)
     while ((readSize = recv(socket, buffer, 1024, 0)) > 0) // 0'dan fazla harf varken
     {
         buffer[readSize] = '\0';
-        printf("\n -> Other Client: %s\nYou: ", buffer);
+        printf(YELLOW "\nOther Client:" RESET " %s \nYou: ", buffer);
         fflush(stdout);
     }
     return NULL;

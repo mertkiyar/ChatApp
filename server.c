@@ -38,7 +38,7 @@ void *handleClient1(void *arg)
 
         if (client2 != 0)
         {
-            printf("Client1 to Client2 : %s\n", buffer); // sunucuda görünmesi için
+            printf(GREEN "Client 1" RESET " to" YELLOW " Client 2:" RESET " %s\n", buffer); // sunucuda görünmesi için
             send(client2, buffer, strlen(buffer), 0);
         }
     }
@@ -70,7 +70,7 @@ void *handleClient2(void *arg)
 
         if (client1 != 0)
         {
-            printf("Client2 to Client1 : %s\n", buffer);
+            printf(YELLOW "Client 2" RESET " to" GREEN " Client 1: " RESET "%s\n", buffer);
             send(client1, buffer, strlen(buffer), 0);
         }
     }
