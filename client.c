@@ -7,6 +7,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "crypt.c"
+
 #define PORT 6378
 
 #define RED "\033[1;31m"
@@ -14,16 +16,36 @@
 #define YELLOW "\033[1;33m"
 #define RESET "\033[0m"
 
+int chatActive = 1;
+
 void *receiveMessage(void *socket_desc)
 {
     int socket = *(int *)socket_desc;
     char buffer[1024];
     int readSize; // mesajdaki harf sayısı
 
+    unsigned char decrypedText[1024];
+    unsigned char *decodedData;
+    int decodedLength;
+
     while ((readSize = recv(socket, buffer, 1024, 0)) > 0) // 0'dan fazla harf varken
     {
         buffer[readSize] = '\0';
-        printf(YELLOW "\nOther Client:" RESET " %s \nYou: ", buffer);
+
+        decodedData = decodeBase64(buffer, strlen(buffer), &decodedLength);
+        decryptWithAES(decodedData, decodedLength, KEY, decrypedText);
+        free(decodedData);
+
+        if (strstr((char *)decrypedText, "left the chat") != NULL)
+        {
+            printf("\n" RED "-> %s" RESET "\n", decrypedText);
+            chatActive = 0;
+            close(socket);
+            return NULL;
+        }
+
+        printf(YELLOW "\nOther Client:" RESET " %s \n", decrypedText);
+        printf("You: ");
         fflush(stdout);
     }
     return NULL;
@@ -34,6 +56,10 @@ int main()
     int clientSocket, clientConnect, serverAddressSize;
     struct sockaddr_in serverAddress;
     char buffer[1024];
+
+    unsigned char cipherText[1024];
+    char *base64Text;
+    int cipherLength;
     pthread_t recvThread;
 
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -80,19 +106,34 @@ int main()
     {
         printf("You: ");
         fgets(buffer, 1024, stdin);
+
+        if (chatActive == 0)
+            break;
+
         buffer[strcspn(buffer, "\n")] = 0;
 
-        if (strcmp(buffer, "/exit") == 0) // sohbetten çıkmak için
+        if (strlen(buffer) > 0)
         {
-            send(clientSocket, buffer, strlen(buffer), 0);
-            printf("You left the chat.");
-            close(clientSocket);
-            break;
-        }
+            if (strcmp(buffer, "/exit") == 0) // sohbetten çıkmak için
+            {
+                // send(clientSocket, buffer, strlen(buffer), 0);
+                cipherLength = encryptWithAES((unsigned char *)buffer, strlen(buffer), KEY, cipherText);
+                base64Text = encodeBase64(cipherText, cipherLength);
 
-        if (strlen(buffer) > 0) // boş mesaj göndermemek için
-        {
-            send(clientSocket, buffer, strlen(buffer), 0);
+                send(clientConnect, base64Text, strlen(base64Text), 0);
+                free(base64Text);
+
+                printf("You left the chat.");
+                close(clientSocket);
+                break;
+            }
+
+            cipherLength = encryptWithAES((unsigned char *)buffer, strlen(buffer), KEY, cipherText);
+            base64Text = encodeBase64(cipherText, cipherLength);
+
+            send(clientSocket, base64Text, strlen(base64Text), 0);
+
+            free(base64Text); // mesajı silmek için
         }
     }
 }
