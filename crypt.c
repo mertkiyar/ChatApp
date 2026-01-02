@@ -9,7 +9,6 @@
 #include <stdlib.h> //malloc için
 
 static unsigned char *KEY = (unsigned char *)"32bytelikanahtar32bytelikanahtar"; // AES 256bit = 32byte
-static unsigned char *InitialVector = (unsigned char *)"16bytelikanahtar";
 
 void handleError(void)
 {
@@ -22,33 +21,30 @@ int encryptWithAES(unsigned char *plainText, int plainTextLength, unsigned char 
     EVP_CIPHER_CTX *ctx;
     int length;
     int cipherTextLength;
+    unsigned char initialVector[16]; // her mesaj için rastgele
+
+    if (!RAND_bytes(initialVector, 16))
+        handleError(); // 16 byte'lık bir metin oluşturur.
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-    {
         handleError();
-    }
 
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, InitialVector) != 1) // AES 256 alg. seçildi. cbc zincirleme şifreler. ecb den daha güvenli.
-    {
-        handleError();
-    }
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, initialVector) != 1)
+        handleError(); // AES 256 alg. cbc zincirleme şifreler. ecb den daha güvenli.
 
-    if (EVP_EncryptUpdate(ctx, cipherText, &length, plainText, plainTextLength) != 1) // metni parçalarıyla şifreleme
-    {
-        handleError();
-    }
+    if (EVP_EncryptUpdate(ctx, cipherText + 16, &length, plainText, plainTextLength) != 1)
+        handleError(); // metni parçalarıyla şifreleme
 
     cipherTextLength = length;
 
-    if (EVP_EncryptFinal_ex(ctx, cipherText + length, &length) != 1) // şifrleme sonunda boşluklar kullanmak için
-    {
-        handleError();
-    }
+    if (EVP_EncryptFinal_ex(ctx, cipherText + 16 + length, &length) != 1)
+        handleError(); // şifrleme sonunda boşluklar kullanmak için
 
     cipherTextLength += length;
 
     EVP_CIPHER_CTX_free(ctx); // ctx'i bellekten siler
-    return cipherTextLength;
+    memcpy(cipherText, initialVector, 16);
+    return cipherTextLength + 16;
 }
 
 int decryptWithAES(unsigned char *cipherText, int cipherTextLength, unsigned char *key, unsigned char *plainText)
@@ -56,34 +52,29 @@ int decryptWithAES(unsigned char *cipherText, int cipherTextLength, unsigned cha
     EVP_CIPHER_CTX *ctx;
     int length;
     int plainTextLength;
+    unsigned char initialVector[16];
+
+    memcpy(initialVector, cipherText, 16);
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-    {
         handleError();
-    }
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, InitialVector) != 1)
-    {
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, initialVector) != 1)
         handleError();
-    }
 
-    if (EVP_DecryptUpdate(ctx, plainText, &length, cipherText, cipherTextLength) != 1)
-    {
+    if (EVP_DecryptUpdate(ctx, plainText, &length, cipherText + 16, cipherTextLength - 16) != 1)
         handleError();
-    }
 
     plainTextLength = length;
 
     if (EVP_DecryptFinal_ex(ctx, plainText + length, &length) != 1)
-    {
         handleError();
-    }
 
     plainTextLength += length;
 
     EVP_CIPHER_CTX_free(ctx);
     plainText[plainTextLength] = '\0'; // NULL = \0 cümleyi bitirir
-    return cipherTextLength;
+    return plainTextLength;
 }
 
 char *encodeBase64(const unsigned char *input, int length)
