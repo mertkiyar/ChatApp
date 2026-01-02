@@ -1,7 +1,7 @@
 #include <openssl/evp.h> //encode/decode işlemleri için
 #include <openssl/aes.h> //encryption aes
 #include <openssl/bio.h> //basic i/o
-// #include <openssl/pem.h> //şifreli verileri depolamak için
+#include <openssl/pem.h> //rsa işlemleri
 #include <openssl/buffer.h>
 #include <openssl/err.h>
 #include <openssl/rand.h> //random num
@@ -113,4 +113,103 @@ unsigned char *decodeBase64(const char *input, int length, int *outLength)
     BIO_free_all(base64);
 
     return (buffer);
+}
+
+EVP_PKEY *createRSAKey()
+{
+    EVP_PKEY_CTX *ctx;
+    EVP_PKEY *pkey = NULL;
+
+    ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+
+    if (!ctx)
+        handleError();
+
+    if (EVP_PKEY_keygen_init <= 0)
+        handleError();
+
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 1024) <= 0)
+        handleError(); // 1024 bitlik rsa key(artırılabilir)
+
+    if (EVP_PKEY_keygen(ctx, &pkey) <= 0)
+        handleError();
+
+    EVP_PKEY_CTX_free(ctx);
+    return pkey;
+}
+
+char *getPublicKey(EVP_PKEY *pkey)
+{
+    BIO *bio = BIO_new(BIO_s_mem());
+    PEM_write_bio_PUBKEY(bio, pkey);
+
+    char *pemStr = NULL;
+    long length = BIO_get_mem_data(bio, &pemStr);
+
+    char *result = (char *)malloc(length + 1);
+    memcpy(result, pemStr, length);
+    result[length] = '\0';
+
+    BIO_free(bio);
+    return result;
+}
+
+EVP_PKEY *strToPEM(char *pemStr)
+{
+    BIO *bio = BIO_new_mem_buf(pemStr, -1);
+    EVP_PKEY *pkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+
+    BIO_free(bio);
+    return pkey;
+}
+int encryptRSA(EVP_PKEY *publicKey, unsigned char *plainData, int length, unsigned char *encryptedData)
+{
+    EVP_PKEY_CTX *ctx;
+    size_t outLength;
+
+    ctx = EVP_PKEY_CTX_new(publicKey, NULL);
+
+    if (!ctx)
+        handleError();
+
+    if (EVP_PKEY_encrypt_init(ctx) <= 0)
+        handleError();
+
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
+        handleError(); // OAEP = güvenlik
+
+    if (EVP_PKEY_encrypt(ctx, NULL, &outLength, plainData, length) <= 0)
+        handleError(); // şifreli metnin tuttuğu alan
+
+    if (EVP_PKEY_encrypt(ctx, encryptedData, &outLength, plainData, length) <= 0)
+        handleError(); // şifreleme
+
+    EVP_PKEY_CTX_free(ctx);
+    return (int)outLength;
+}
+
+int decryptRSA(EVP_PKEY *privateKey, unsigned char *encryptedData, int length, unsigned char *decryptedData)
+{
+    EVP_PKEY_CTX *ctx;
+    size_t outLength;
+
+    ctx = EVP_PKEY_CTX_new(privateKey, NULL);
+
+    if (!ctx)
+        handleError();
+
+    if (EVP_PKEY_decrypt_init(ctx) <= 0)
+        handleError();
+
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
+        handleError(); // OAEP = güvenlik
+
+    if (EVP_PKEY_decrypt(ctx, NULL, &outLength, encryptedData, length) <= 0)
+        handleError(); // şifreli metnin tuttuğu alan
+
+    if (EVP_PKEY_decrypt(ctx, decryptedData, &outLength, encryptedData, length) <= 0)
+        handleError(); // şifreleme
+
+    EVP_PKEY_CTX_free(ctx);
+    return (int)outLength;
 }
