@@ -1,5 +1,6 @@
 #include <openssl/evp.h> //encode/decode işlemleri için
 #include <openssl/aes.h> //encryption aes
+#include <openssl/rsa.h> //rsa keygen komutları için
 #include <openssl/bio.h> //basic i/o
 #include <openssl/pem.h> //rsa işlemleri
 #include <openssl/buffer.h>
@@ -125,7 +126,7 @@ EVP_PKEY *createRSAKey()
     if (!ctx)
         handleError();
 
-    if (EVP_PKEY_keygen_init <= 0)
+    if (EVP_PKEY_keygen_init(ctx) <= 0)
         handleError();
 
     if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 1024) <= 0)
