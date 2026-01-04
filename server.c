@@ -159,7 +159,7 @@ int main()
     }
 
     pthread_create(&thread2, NULL, handleClient2, NULL);
-    printf(GREEN "[+]" RESET " Client 1 and Client 2 connected to the server with %d port!\n", ntohs(socketAddress.sin_port));
+    printf(GREEN "[+]" RESET " Client 1 and Client 2 connected to the server with" YELLOW "%d" RESET "port!\n", ntohs(socketAddress.sin_port));
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
