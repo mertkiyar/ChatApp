@@ -10,7 +10,7 @@ long getFileSize(const char *fileName)
 {
     FILE *file = fopen(fileName, "rb"); // rb = read binary
 
-    if (file == 0)
+    if (file == NULL)
         return -1;
 
     fseek(file, 0, SEEK_END); // baştan sona kadar kaç byte olduğunu bul
@@ -22,13 +22,14 @@ long getFileSize(const char *fileName)
 unsigned char *readFile(const char *fileName, long *fileSize)
 {
     *fileSize = getFileSize(fileName);
-
     if (*fileSize == -1)
         return NULL;
 
     FILE *file = fopen(fileName, "rb");
-    unsigned char *data = (unsigned char *)malloc(*fileSize); // fileSize boyutuna göre alan ayırır
+    if (file == NULL)
+        return NULL;
 
+    unsigned char *data = (unsigned char *)malloc(*fileSize + 1); // fileSize boyutuna göre alan ayırır
     if (data == 0)
     {
         fclose(file);
@@ -36,6 +37,8 @@ unsigned char *readFile(const char *fileName, long *fileSize)
     }
 
     fread(data, 1, *fileSize, file);
+    data[*fileSize] = '\0';
+
     fclose(file);
     return data;
 }
@@ -43,14 +46,14 @@ unsigned char *readFile(const char *fileName, long *fileSize)
 void writeFile(const char *fileName, unsigned char *data, int fileSize)
 {
     FILE *file = fopen(fileName, "wb"); // write binary
-    if (file == 1)
+    if (file)
     {
         fwrite(data, 1, fileSize, file);
         fclose(file);
-        printf(GREEN "[+] " RESET "The file %s saved.", fileName);
+        printf(GREEN "[+] " RESET "The file %s saved.\n", fileName);
     }
     else
     {
-        printf(RED "[-] " RESET "The file not saved.");
+        printf(RED "[-] " RESET "The file not saved.\n");
     }
 }
