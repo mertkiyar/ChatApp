@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h> // mem alloc için
 
 #define PORT 6378
 
@@ -19,10 +20,18 @@ int client2 = 0;
 
 void *handleClient1(void *arg)
 {
-    char buffer[1024];
+    char *buffer = (char *)malloc(15 * 1024 * 1024 + 1); // şu anlık 15mb olarak yeterli gibi artırılabilir.
+    // char buffer[1024];
+
+    if (buffer == NULL)
+    {
+        printf(RED "[-] " RESET "Memory Error\n");
+        return NULL;
+    }
+
     int readSize;
 
-    while ((readSize = recv(client1, buffer, 1024, 0)) > 0)
+    while ((readSize = recv(client1, buffer, 15 * 1024 * 1024, 0)) > 0)
     {
         buffer[readSize] = '\0'; // önceki mesajların üzerine yazılmasını düzeltmek için
 
@@ -39,10 +48,10 @@ void *handleClient1(void *arg)
         if (client2 != 0)
         {
             printf(GREEN "Client 1" RESET " to" YELLOW " Client 2:" RESET " %s\n", buffer); // sunucuda görünmesi için
-            send(client2, buffer, strlen(buffer), 0);
+            send(client2, buffer, strlen(buffer), 0);                                       // strlen(buffer) yerine readSize olabilr
         }
     }
-
+    free(buffer);
     close(client1);
     client1 = 0; // bağlantı koptu veya client1 ayrıldı
     printf(RED "[-]" RESET " Client 1 left, chat closed.\n");
@@ -51,10 +60,18 @@ void *handleClient1(void *arg)
 
 void *handleClient2(void *arg)
 {
-    char buffer[1024];
+    // char buffer[1024];
+    char *buffer = (char *)malloc(15 * 1024 * 1024 + 1);
+
+    if (buffer == NULL)
+    {
+        printf(RED "[-] " RESET "Memory Error\n");
+        return NULL;
+    }
+
     int readSize;
 
-    while ((readSize = recv(client2, buffer, 1024, 0)) > 0)
+    while ((readSize = recv(client2, buffer, 15 * 1024 * 1024, 0)) > 0)
     {
         buffer[readSize] = '\0';
 
@@ -74,10 +91,11 @@ void *handleClient2(void *arg)
             send(client1, buffer, strlen(buffer), 0);
         }
     }
-
+    free(buffer);
     close(client2);
     client2 = 0;
     printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
+    free(buffer);
     return NULL;
 }
 
@@ -85,7 +103,6 @@ int main()
 {
     int serverSocket, serverBind, serverListen, clientAddressSize;
     struct sockaddr_in socketAddress, clientAddress;
-    char buffer[1024];
     pthread_t thread1, thread2;
 
     // SOCKET
@@ -109,7 +126,7 @@ int main()
     serverBind = bind(serverSocket, (struct sockaddr *)&socketAddress, sizeof(socketAddress));
     if (serverBind != 0)
     {
-        printf(RED "[-]" RESET " Error: The bind operation is failed.\n");
+        printf(RED "[-]" RESET " The bind operation is failed.\n");
         return 1; // hata gelirse devam etmesin diye 1 döndü
     }
     else
@@ -122,7 +139,7 @@ int main()
     serverListen = listen(serverSocket, 2); // 2 client dinleniyor
     if (serverListen != 0)
     {
-        printf(RED "[-]" RESET " Error: The listen operation is failed.");
+        printf(RED "[-]" RESET " The listen operation is failed.");
         return 1;
     }
     else
@@ -159,7 +176,7 @@ int main()
     }
 
     pthread_create(&thread2, NULL, handleClient2, NULL);
-    printf(GREEN "[+]" RESET " Client 1 and Client 2 connected to the server with" YELLOW "%d" RESET "port!\n", ntohs(socketAddress.sin_port));
+    printf(GREEN "[+] Client 1 " RESET "and " YELLOW "Client 2 " RESET "connected to the server with" YELLOW " %d " RESET "port!\n", ntohs(socketAddress.sin_port));
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);

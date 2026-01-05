@@ -9,13 +9,19 @@
 #include <string.h>
 #include <stdlib.h> //malloc için
 
-static unsigned char *KEY = (unsigned char *)"32bytelikanahtar32bytelikanahtar"; // AES 256bit = 32byte
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define RESET "\033[0m"
 
-void handleError(void)
+void printError(const char *errorMessage)
 {
+    fprintf(stderr, RED "[-] " RESET "Cryption Error (%s): ", errorMessage);
     ERR_print_errors_fp(stderr);
-    abort(); // hata alınca kapat
+    // abort(); // hata alınca kapat
 }
+
+// AES - ENCRYPT / DECRYPT
 
 int encryptWithAES(unsigned char *plainText, int plainTextLength, unsigned char *key, unsigned char *cipherText)
 {
@@ -25,21 +31,39 @@ int encryptWithAES(unsigned char *plainText, int plainTextLength, unsigned char 
     unsigned char initialVector[16]; // her mesaj için rastgele
 
     if (!RAND_bytes(initialVector, 16))
-        handleError(); // 16 byte'lık bir metin oluşturur.
+    {
+        printError("RAND_bytes");
+        return 0;
+    }
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-        handleError();
+    {
+        printError("EVP_CIPHER_CTX_new");
+        return 0;
+    }
 
     if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, initialVector) != 1)
-        handleError(); // AES 256 alg. cbc zincirleme şifreler. ecb den daha güvenli.
+    {
+        printError("EVP_EncryptInit_ex");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0; // AES 256 alg. cbc zincirleme şifreler. ecb den daha güvenli.
+    }
 
     if (EVP_EncryptUpdate(ctx, cipherText + 16, &length, plainText, plainTextLength) != 1)
-        handleError(); // metni parçalarıyla şifreleme
+    {
+        printError("EVP_EncryptUpdate");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0; // metni parçalarıyla şifreleme
+    }
 
     cipherTextLength = length;
 
     if (EVP_EncryptFinal_ex(ctx, cipherText + 16 + length, &length) != 1)
-        handleError(); // şifrleme sonunda boşluklar kullanmak için
+    {
+        printError("EVP_EncryptFinal_ex");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0; // şifrleme sonunda boşluklar kullanmak için
+    }
 
     cipherTextLength += length;
 
@@ -58,18 +82,33 @@ int decryptWithAES(unsigned char *cipherText, int cipherTextLength, unsigned cha
     memcpy(initialVector, cipherText, 16);
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-        handleError();
+    {
+        printError("EVP_CIPHER_CTX_new");
+        return 0;
+    }
 
     if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, initialVector) != 1)
-        handleError();
+    {
+        printError("EVP_DecryptInit_ex");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
 
     if (EVP_DecryptUpdate(ctx, plainText, &length, cipherText + 16, cipherTextLength - 16) != 1)
-        handleError();
+    {
+        printError("EVP_DecryptUpdate");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
 
     plainTextLength = length;
 
     if (EVP_DecryptFinal_ex(ctx, plainText + length, &length) != 1)
-        handleError();
+    {
+        printError("EVP_DecryptFinal_ex (Bad Decrypt or Padding)");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
 
     plainTextLength += length;
 
@@ -77,6 +116,8 @@ int decryptWithAES(unsigned char *cipherText, int cipherTextLength, unsigned cha
     plainText[plainTextLength] = '\0'; // NULL = \0 cümleyi bitirir
     return plainTextLength;
 }
+
+// BASE64 - ENCODE / DECODE
 
 char *encodeBase64(const unsigned char *input, int length)
 {
@@ -116,7 +157,7 @@ unsigned char *decodeBase64(const char *input, int length, int *outLength)
     return (buffer);
 }
 
-EVP_PKEY *createRSAKey()
+EVP_PKEY *createRSAKeyPair()
 {
     EVP_PKEY_CTX *ctx;
     EVP_PKEY *pkey = NULL;
@@ -124,16 +165,28 @@ EVP_PKEY *createRSAKey()
     ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
 
     if (!ctx)
-        handleError();
+    {
+        printError("EVP_PKEY_CTX_new_id");
+        return 0;
+    }
 
     if (EVP_PKEY_keygen_init(ctx) <= 0)
-        handleError();
+    {
+        printError("EVP_PKEY_keygen_init");
+        return 0;
+    }
 
-    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 1024) <= 0)
-        handleError(); // 1024 bitlik rsa key(artırılabilir)
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048) <= 0)
+    {
+        printError("EVP_PKEY_CTX_set_rsa_keygen_bits");
+        return 0;
+    }
 
     if (EVP_PKEY_keygen(ctx, &pkey) <= 0)
-        handleError();
+    {
+        printError("EVP_PKEY_keygen");
+        return 0;
+    }
 
     EVP_PKEY_CTX_free(ctx);
     return pkey;
@@ -163,6 +216,9 @@ EVP_PKEY *strToPEM(char *pemStr)
     BIO_free(bio);
     return pkey;
 }
+
+// RSA - ENCRYPT / DECRYPT
+
 int encryptRSA(EVP_PKEY *publicKey, unsigned char *plainData, int length, unsigned char *encryptedData)
 {
     EVP_PKEY_CTX *ctx;
@@ -171,19 +227,34 @@ int encryptRSA(EVP_PKEY *publicKey, unsigned char *plainData, int length, unsign
     ctx = EVP_PKEY_CTX_new(publicKey, NULL);
 
     if (!ctx)
-        handleError();
+    {
+        printError("encryptRSA ctx");
+        return 0;
+    }
 
     if (EVP_PKEY_encrypt_init(ctx) <= 0)
-        handleError();
+    {
+        printError("EVP_PKEY_encrypt_init");
+        return 0;
+    }
 
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
-        handleError(); // OAEP = güvenlik
+    {
+        printError("encryptRSA EVP_PKEY_CTX_set_rsa_padding");
+        return 0; // OAEP = güvenlik
+    }
 
     if (EVP_PKEY_encrypt(ctx, NULL, &outLength, plainData, length) <= 0)
-        handleError(); // şifreli metnin tuttuğu alan
+    {
+        printError("EVP_PKEY_encrypt");
+        return 0; // şifreli metnin tuttuğu alan
+    }
 
     if (EVP_PKEY_encrypt(ctx, encryptedData, &outLength, plainData, length) <= 0)
-        handleError(); // şifreleme
+    {
+        printError("EVP_PKEY_encrypt");
+        return 0; // şifreleme
+    }
 
     EVP_PKEY_CTX_free(ctx);
     return (int)outLength;
@@ -197,19 +268,34 @@ int decryptRSA(EVP_PKEY *privateKey, unsigned char *encryptedData, int length, u
     ctx = EVP_PKEY_CTX_new(privateKey, NULL);
 
     if (!ctx)
-        handleError();
+    {
+        printError("decryptRSA ctx");
+        return 0;
+    }
 
     if (EVP_PKEY_decrypt_init(ctx) <= 0)
-        handleError();
+    {
+        printError("EVP_PKEY_decrypt_init");
+        return 0;
+    }
 
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
-        handleError(); // OAEP = güvenlik
+    {
+        printError("decryptRSA EVP_PKEY_CTX_set_rsa_padding");
+        return 0; // OAEP = güvenlik
+    }
 
     if (EVP_PKEY_decrypt(ctx, NULL, &outLength, encryptedData, length) <= 0)
-        handleError(); // şifreli metnin tuttuğu alan
+    {
+        printError("EVP_PKEY_decrypt");
+        return 0; // şifreli metnin tuttuğu alan
+    }
 
     if (EVP_PKEY_decrypt(ctx, decryptedData, &outLength, encryptedData, length) <= 0)
-        handleError(); // şifreleme
+    {
+        printError("EVP_PKEY_decrypt");
+        return 0; // şifreleme
+    }
 
     EVP_PKEY_CTX_free(ctx);
     return (int)outLength;
