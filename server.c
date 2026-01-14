@@ -21,11 +21,10 @@ int client2 = 0;
 void *handleClient1(void *arg)
 {
     char *buffer = (char *)malloc(15 * 1024 * 1024 + 1); // şu anlık 15mb olarak yeterli gibi artırılabilir.
-    // char buffer[1024];
 
     if (buffer == NULL)
     {
-        printf(RED "[-] " RESET "Memory Error\n");
+        printf(RED "[-] " RESET "Memory Error(server/buffer)\n");
         return NULL;
     }
 
@@ -47,14 +46,14 @@ void *handleClient1(void *arg)
 
         if (client2 != 0)
         {
-            printf(GREEN "Client 1" RESET " to" YELLOW " Client 2:" RESET " %s\n", buffer); // sunucuda görünmesi için
-            send(client2, buffer, strlen(buffer), 0);                                       // strlen(buffer) yerine readSize olabilr
+            printf(GREEN "Client 1" RESET " to" YELLOW " Client 2:" RESET " %s\n", buffer); // sunucu tarafından da görünmesi için sonradan kaldırılabilir.
+            send(client2, buffer, strlen(buffer), 0);
         }
     }
     free(buffer);
     close(client1);
     client1 = 0; // bağlantı koptu veya client1 ayrıldı
-    printf(RED "[-]" RESET " Client 1 left, chat closed.\n");
+    printf(RED "[-]" RESET " Client 1 left the chat.\n");
     return NULL; // thread'ı sonlandırmak için
 }
 
@@ -65,7 +64,7 @@ void *handleClient2(void *arg)
 
     if (buffer == NULL)
     {
-        printf(RED "[-] " RESET "Memory Error\n");
+        printf(RED "[-] " RESET "Memory Error(server/buffer)\n");
         return NULL;
     }
 
@@ -94,7 +93,7 @@ void *handleClient2(void *arg)
     free(buffer);
     close(client2);
     client2 = 0;
-    printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
+    printf(RED "[-]" RESET " Client 2 left the chat.\n");
     return NULL;
 }
 
@@ -135,7 +134,7 @@ int main()
 
     // LISTEN
 
-    serverListen = listen(serverSocket, 2); // 2 client dinleniyor
+    serverListen = listen(serverSocket, 2);
     if (serverListen != 0)
     {
         printf(RED "[-]" RESET " The listen operation is failed.");
@@ -157,7 +156,7 @@ int main()
     }
     else
     {
-        printf(GREEN "[+]" RESET " Client 1's request accepted. Socket ID: %d\n", client1);
+        printf(GREEN "[+]" RESET " Client 1's request accepted. Client 1's socket ID: %d\n", client1);
     }
     pthread_create(&thread1, NULL, handleClient1, NULL);
     printf(YELLOW "[*]" RESET " Client 2 waiting...\n");
@@ -171,7 +170,7 @@ int main()
     }
     else
     {
-        printf(GREEN "[+]" RESET " Client 2's request accepted. Socket ID: %d\n", client2);
+        printf(GREEN "[+]" RESET " Client 2's request accepted. Client 2's socket ID: %d\n", client2);
     }
 
     pthread_create(&thread2, NULL, handleClient2, NULL);

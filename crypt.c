@@ -16,7 +16,7 @@
 
 void printError(const char *errorMessage)
 {
-    fprintf(stderr, RED "[-] " RESET "Cryption Error (%s): ", errorMessage);
+    fprintf(stderr, RED "[-] " RESET "Cryption Error (%s): \n", errorMessage);
     ERR_print_errors_fp(stderr);
     // abort(); // hata alınca kapat
 }
