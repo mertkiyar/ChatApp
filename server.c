@@ -95,7 +95,6 @@ void *handleClient2(void *arg)
     close(client2);
     client2 = 0;
     printf(RED "[-]" RESET " Client 2 left, chat closed.\n");
-    free(buffer);
     return NULL;
 }
 
