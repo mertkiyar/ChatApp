@@ -27,29 +27,54 @@ void *receiveMessage(void *socket_desc)
 {
     int socket = *(int *)socket_desc;
     // char buffer[4096]; resim ve ses dosyaları için çok küçük. 4kb mesajlara anca yetiyor
-    char *buffer = (char *)malloc(15 * 1024 * 1024); // şu anlık 15mb olarak yeterli gibi artırılabilir.
+    char *sbuffer = (char *)malloc(15 * 1024 * 1024); // şu anlık 15mb olarak yeterli gibi artırılabilir.
 
-    if (buffer == NULL)
+    if (sbuffer == NULL)
     {
         printf(RED "[-] " RESET "Memory allocation failed\n");
         return NULL;
     }
+    sbuffer[0] = '\0'; // temizle
+    long currentDataLenght = 0;
+
+    char tempBuffer[4096]; // her bir buffer 4kb tasıyacak. kısaca 4kblik paketler halinde gönderilecek
 
     int readSize; // mesajdaki harf sayısı
 
-    while ((readSize = recv(socket, buffer, 15 * 1024 * 1024, 0)) > 0) // 0'dan fazla harf varken
+    while ((readSize = recv(socket, tempBuffer, sizeof(tempBuffer), 0)) > 0) // 0'dan fazla harf varken
     {
-        buffer[readSize] = '\0';
+        tempBuffer[readSize] = '\0';
 
-        int msgStatus = receivePacket(socket, buffer);
+        if (currentDataLenght + readSize >= 15 * 1024 * 1024)
+        {
+            printf(RED "[-]" RESET " Buffer overflow!\n");
+            currentDataLenght = 0;
+            sbuffer[0] = '\0';
+            continue;
+        }
+
+        memcpy(sbuffer + currentDataLenght, tempBuffer, readSize);
+        currentDataLenght += readSize;
+        sbuffer[currentDataLenght] = '\0';
+
+        char *endTag = strstr(sbuffer, "|END");
+
+        if (endTag == NULL)
+            continue;
+
+        *endTag = '\0';
+
+        int msgStatus = receivePacket(socket, sbuffer);
         if (msgStatus == 0)
         {
             chatActive = 0;
             close(socket);
             break;
         }
+        currentDataLenght = 0;
+        sbuffer[0] = '\0';
     }
-    free(buffer);
+    free(sbuffer);
     return NULL;
 }
 
@@ -124,6 +149,7 @@ int main()
         buffer[strcspn(buffer, "\n")] = 0;
 
         // mesajlarda boşluk gönderilmesini engelleme için
+
         int justSpace = 1;
         for (int i = 0; i < strlen(buffer); i++)
         {

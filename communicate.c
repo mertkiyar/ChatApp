@@ -22,7 +22,17 @@ extern EVP_PKEY *otherClientPublicKey;
 
 void sendPacket(int socket, char *packet)
 {
-    send(socket, packet, strlen(packet), 0);
+    long totalSize = strlen(packet) + 5; // 4(|END) + 1(\0) = 5 karakter
+    char *finalPacket = (char *)malloc(totalSize);
+
+    if (finalPacket)
+    {
+        sprintf(finalPacket, "%s|END", packet); // paketin sonuna göndermeden önce |END eklendi
+
+        send(socket, finalPacket, strlen(finalPacket), 0);
+
+        free(finalPacket);
+    }
 }
 
 // TEXT
