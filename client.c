@@ -47,9 +47,15 @@ void *receiveMessage(void *socket_desc)
 
         if (currentDataLenght + readSize >= 15 * 1024 * 1024)
         {
-            printf(RED "[-]" RESET " Buffer overflow!\n");
+            printf("\r\033[K");
+            printf(RED "[-]" RESET " Buffer overflow! Max file size: 15MB\n");
+
             currentDataLenght = 0;
             sbuffer[0] = '\0';
+
+            printf("You: ");
+            fflush(stdout);
+
             continue;
         }
 
@@ -162,9 +168,6 @@ int main()
 
         if (strlen(buffer) > 0 && justSpace == 0)
         {
-            unsigned char cipherText[1024];
-            int cipherLength = encryptWithAES((unsigned char *)buffer, strlen(buffer), currentAESKey, cipherText);
-            char *base64Text = encodeBase64(cipherText, cipherLength);
 
             // sohbetten çıkmak için - /exit
 
