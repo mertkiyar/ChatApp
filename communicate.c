@@ -193,7 +193,7 @@ int receivePacket(int socket, char *buffer)
         }
     }
 
-    // PUBLIC KEY
+    // TAG = PUBLIC KEY ise
 
     else if (strcmp(tag, "PUBLICKEY") == 0)
     {
