@@ -10,6 +10,7 @@
 #include "communicate.c"
 
 #define PORT 6378
+#define MAXSIZE 15 * 1024 * 1024 // şu anlık 15mb olarak yeterli gibi artırılabilir.
 
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
@@ -27,7 +28,7 @@ void *receiveMessage(void *socket_desc)
 {
     int socket = *(int *)socket_desc;
     // char buffer[4096]; resim ve ses dosyaları için çok küçük. 4kb mesajlara anca yetiyor
-    char *sbuffer = (char *)malloc(15 * 1024 * 1024); // şu anlık 15mb olarak yeterli gibi artırılabilir.
+    char *sbuffer = (char *)malloc(MAXSIZE);
 
     if (sbuffer == NULL)
     {
@@ -45,7 +46,7 @@ void *receiveMessage(void *socket_desc)
     {
         tempBuffer[readSize] = '\0';
 
-        if (currentDataLenght + readSize >= 15 * 1024 * 1024)
+        if (currentDataLenght + readSize >= MAXSIZE)
         {
             printf("\r\033[K");
             printf(RED "[-]" RESET " Buffer overflow! Max file size: 15MB\n");
