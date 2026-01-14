@@ -10,7 +10,7 @@
 #include "communicate.c"
 
 #define PORT 6378
-#define MAXSIZE 15 * 1024 * 1024 // şu anlık 15mb olarak yeterli gibi artırılabilir.
+#define MAXSIZE 20 * 1024 * 1024 // şu anlık 15mb olarak yeterli gibi artırılabilir. Base64 ile birlikte 15 * 1.33=20
 
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
