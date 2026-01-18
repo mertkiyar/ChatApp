@@ -1,14 +1,14 @@
 #include <stdio.h>
-#include <sys/socket.h>
+#include <sys/socket.h> // socket
 #include <string.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <pthread.h>
+#include <arpa/inet.h> //tcp
+#include <errno.h>     //strerror
+#include <pthread.h>   // thread
 #include <unistd.h>
 #include <stdlib.h> // mem alloc için
 
 #define PORT 6378
+#define MAXSIZE 20 * 1024 * 1024
 
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
@@ -20,7 +20,7 @@ int client2 = 0;
 
 void *handleClient1(void *arg)
 {
-    char *buffer = (char *)malloc(15 * 1024 * 1024 + 1); // şu anlık 15mb olarak yeterli gibi artırılabilir.
+    char *buffer = (char *)malloc(MAXSIZE);
 
     if (buffer == NULL)
     {
@@ -30,11 +30,11 @@ void *handleClient1(void *arg)
 
     int readSize;
 
-    while ((readSize = recv(client1, buffer, 15 * 1024 * 1024, 0)) > 0)
+    while ((readSize = recv(client1, buffer, MAXSIZE, 0)) > 0)
     {
         buffer[readSize] = '\0'; // önceki mesajların üzerine yazılmasını düzeltmek için
 
-        if (strcmp(buffer, "/exit") == 0) // client 1 ayrılırsa client 2'ye söyler
+        if (strncmp(buffer, "/exit", 5) == 0) // client 1 ayrılırsa client 2'ye söyler
         {
             if (client2 != 0)
             {
@@ -74,7 +74,7 @@ void *handleClient2(void *arg)
     {
         buffer[readSize] = '\0';
 
-        if (strcmp(buffer, "/exit") == 0) // client 2 ayrılırsa client 1'e söyle
+        if (strncmp(buffer, "/exit", 5) == 0) // client 2 ayrılırsa client 1'e söyle
         {
             if (client1 != 0)
             {
