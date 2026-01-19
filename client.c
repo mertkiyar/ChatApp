@@ -102,7 +102,7 @@ int main()
 
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(PORT);
-    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serverAddress.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
 
     // CONNECT
 
@@ -124,7 +124,7 @@ int main()
     }
     printf(GREEN "[+] " RESET "RSA key created.\n");
 
-    // SEND AES KEY WITH RSA KEY
+    // SEND RSA PUBLIC KEY
 
     char *publicStr = getPublicKey(RSAKeyPair);
     sendKey(clientSocket, "PUBLICKEY", publicStr); // artık communicate.cden gönderiliyor
