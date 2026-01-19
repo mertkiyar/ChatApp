@@ -125,10 +125,9 @@ int receivePacket(int socket, char *buffer)
 
             if (cipherRaw)
             {
-                unsigned char decryptedText[2048];
-                memset(decryptedText, 0, 2048);
+                unsigned char *decryptedText = (unsigned char *)malloc(length + 1024);
+                memset(decryptedText, 0, length + 1024);
                 int decryptLength = decryptWithAES(cipherRaw, length, currentAESKey, decryptedText);
-
                 if (decryptLength > 0)
                 {
                     if (strstr((char *)decryptedText, "/exit") != NULL)
@@ -214,6 +213,8 @@ int receivePacket(int socket, char *buffer)
 
                 sendKey(socket, "AESKEY", b64Key); // key olarak gönder
                 printf(GREEN "[+] " RESET "The connection is secured with end to end encryption now!\n");
+                printf("You: ");
+                fflush(stdout);
                 chatReady = 1; // uçtan uca mesajlaşma hazır
             }
             else
@@ -236,6 +237,9 @@ int receivePacket(int socket, char *buffer)
 
             decryptRSA(RSAKeyPair, encryptData, length, currentAESKey);
             printf(GREEN "[+] " RESET "The public key decrypted.\n");
+            printf(GREEN "[+] " RESET "The connection is secured with end to end encryption now!\n");
+            printf("You: ");
+            fflush(stdout);
             chatReady = 1;
         }
     }
