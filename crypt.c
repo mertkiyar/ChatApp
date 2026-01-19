@@ -1,11 +1,11 @@
-#include <openssl/evp.h> //encode/decode işlemleri için
-#include <openssl/aes.h> //encryption aes
-#include <openssl/rsa.h> //rsa keygen komutları için
-#include <openssl/bio.h> //basic i/o
-#include <openssl/pem.h> //rsa işlemleri
-#include <openssl/buffer.h>
-#include <openssl/err.h>
-#include <openssl/rand.h> //random num
+#include <openssl/evp.h>    //encode/decode işlemleri için
+#include <openssl/aes.h>    //encryption aes
+#include <openssl/rsa.h>    //rsa keygen komutları için
+#include <openssl/bio.h>    //basic i/o
+#include <openssl/pem.h>    //rsa işlemleri
+#include <openssl/buffer.h> //BUF_MEM
+#include <openssl/err.h>    //stderr
+#include <openssl/rand.h>   //random num
 #include <string.h>
 #include <stdlib.h> //malloc için
 

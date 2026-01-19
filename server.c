@@ -1,11 +1,11 @@
-#include <stdio.h>
+#include <stdio.h>      //printf stdout
 #include <sys/socket.h> // socket
-#include <string.h>
-#include <arpa/inet.h> //tcp
-#include <errno.h>     //strerror
-#include <pthread.h>   // thread
-#include <unistd.h>
-#include <stdlib.h> // mem alloc için
+#include <string.h>     //strlen strcmp falan icin
+#include <arpa/inet.h>  //tcp
+#include <errno.h>      //strerror
+#include <pthread.h>    // thread
+#include <unistd.h>     //close
+#include <stdlib.h>     // mem alloc için
 
 #define PORT 6378
 #define MAXSIZE 20 * 1024 * 1024

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <sys/socket.h>
+#include <stdlib.h>
 
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
