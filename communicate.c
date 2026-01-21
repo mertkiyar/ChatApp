@@ -42,7 +42,7 @@ void sendText(int socket, char *message)
     unsigned char cipherText[2048];
     int cipherLength = encryptWithAES((unsigned char *)message, strlen(message), currentAESKey, cipherText);
     char *base64Text = encodeBase64(cipherText, cipherLength);
-    long packetSize = strlen(base64Text) + 10;
+    long packetSize = strlen(base64Text) + 6; // TEXT| + \n = 6 karakter
     char *packet = (char *)malloc(packetSize);
     sprintf(packet, "TEXT|%s", base64Text);
 
