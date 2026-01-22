@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/time.h> // Zaman ölçümü için
 
 #include "crypt.c"
 #include "file.c"
@@ -18,6 +19,20 @@ extern unsigned char currentAESKey[32];
 extern EVP_PKEY *RSAKeyPair;
 extern EVP_PKEY *otherClientPublicKey;
 
+void printSimulationStats(long byteSize, double timeTakenSec)
+{
+    if (timeTakenSec <= 0.000001)
+        timeTakenSec = 0.000001;
+
+    double bits = byteSize * 8.0;
+    double mbps = (bits / 1000000.0) / timeTakenSec; // saniyede kac mbit gönderdi
+
+    printf("\n" YELLOW "--- File sendng stats ---" RESET "\n");
+    printf("File Size: " GREEN "%.2f mb" RESET "\n", (double)byteSize / (1024 * 1024));
+    printf("Transfer Time: " GREEN "%.4f sec" RESET "\n", timeTakenSec);
+    printf("Throughtput: " GREEN "%.2f mbps" RESET "\n", mbps);
+}
+
 // SEND FUNCTIONS
 
 void sendPacket(int socket, char *packet)
@@ -28,9 +43,7 @@ void sendPacket(int socket, char *packet)
     if (finalPacket)
     {
         sprintf(finalPacket, "%s|END", packet); // paketin sonuna göndermeden önce |END eklendi
-
         send(socket, finalPacket, strlen(finalPacket), 0);
-
         free(finalPacket);
     }
 }
@@ -62,22 +75,30 @@ void sendFile(int socket, char *fileName)
     if (fileData != NULL)
     {
         printf(GREEN "[+] " RESET "File %s (%ld byte) found. Encrypting...\n", fileName, fileSize);
+        struct timeval start, end;
+        gettimeofday(&start, NULL);
 
         unsigned char *fileCipherText = (unsigned char *)malloc(fileSize + 2048);
         if (fileCipherText == NULL)
         {
             printf(RED "[-] " RESET "Memory Error!\n");
             free(fileData);
+            return;
         }
 
         int cipherLen = encryptWithAES(fileData, (int)fileSize, currentAESKey, fileCipherText);
         char *base64Data = encodeBase64(fileCipherText, cipherLen);
-        long packetSize = strlen(fileName) + strlen(base64Data) + 50; // 20 yetmedi 50 yapıldı
-        char *bigPacket = (char *)malloc(packetSize);                 // yer ayır
+        long packetSize = strlen(fileName) + strlen(base64Data) + 10;
+        char *bigPacket = (char *)malloc(packetSize);
+
         sprintf(bigPacket, "FILE|%s|%s", fileName, base64Data);
 
         sendPacket(socket, bigPacket);
+        gettimeofday(&end, NULL);
+        double time_taken = (end.tv_sec - start.tv_sec) * 1e6; // timevalsecond saniye cinsinden fark bulmak için
+        time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
         printf(GREEN "[+] " RESET "File sent successfully.\n");
+        printSimulationStats(fileSize, time_taken);
 
         free(fileData);
         free(fileCipherText);
